@@ -1,0 +1,27 @@
+{
+  "auto_config": {
+    "enabled": true,
+    "detection_interval": 1.0,
+    "auto_init": true,
+    "streaming": true
+  },
+  "dashboard": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 5001,
+    "debug": false
+  },
+  "assembly_commands": {
+    "enabled": true,
+    "web_integration": true
+  },
+  "data_streaming": {
+    "enabled": true,
+    "broadcast_rate": 20,
+    "data_retention": 1000
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "live_data_system.log"
+  }
+}

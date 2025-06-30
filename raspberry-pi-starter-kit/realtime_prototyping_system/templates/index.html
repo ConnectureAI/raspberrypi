@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Raspberry Pi Prototyping System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .breadboard-canvas {
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #2d5f3f, #1e3a28);
+            position: relative;
+            min-height: 500px;
+            overflow: hidden;
+        }
+        
+        .gpio-pin {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            position: absolute;
+            border: 2px solid #ffc107;
+            background: #343a40;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .gpio-pin:hover {
+            background: #ffc107;
+            transform: scale(1.2);
+        }
+        
+        .gpio-pin.occupied {
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .gpio-pin.suggested {
+            background: #28a745;
+            border-color: #28a745;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .component-library {
+            max-height: 600px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .component-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin: 10px 0;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .component-card:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            transform: translateY(-2px);
+        }
+        
+        .complexity-badge {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+        }
+        
+        .complexity-1 { background: #28a745; }
+        .complexity-2 { background: #17a2b8; }
+        .complexity-3 { background: #ffc107; color: #000; }
+        .complexity-4 { background: #fd7e14; }
+        .complexity-5 { background: #dc3545; }
+        
+        .nlp-input {
+            background: #f8f9fa;
+            border: 2px solid #28a745;
+            border-radius: 25px;
+            padding: 15px 25px;
+            font-size: 1.1rem;
+        }
+        
+        .nlp-input:focus {
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+            border-color: #28a745;
+        }
+        
+        .code-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .assembly-guide {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 10px 0;
+        }
+        
+        .step-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #28a745;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .connection-wire {
+            position: absolute;
+            height: 3px;
+            background: #ffc107;
+            border-radius: 2px;
+            z-index: 10;
+        }
+        
+        .validation-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 15px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        
+        .breadboard-pi {
+            width: 100px;
+            height: 200px;
+            background: #28a745;
+            border-radius: 10px;
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            border: 3px solid #155724;
+        }
+        
+        .breadboard-main {
+            width: 400px;
+            height: 250px;
+            background: #343a40;
+            border-radius: 15px;
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            border: 3px solid #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <nav class="navbar navbar-dark bg-success mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">
+                    <i class="fas fa-microchip me-2"></i>
+                    Advanced Raspberry Pi Prototyping System
+                </span>
+                <div class="d-flex">
+                    <button class="btn btn-outline-light me-2" onclick="validateProject()">
+                        <i class="fas fa-check-circle"></i> Validate
+                    </button>
+                    <button class="btn btn-outline-light me-2" onclick="generateCode()">
+                        <i class="fas fa-code"></i> Generate Code
+                    </button>
+                    <button class="btn btn-warning" onclick="deployToPI()">
+                        <i class="fas fa-rocket"></i> Deploy to Pi
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="row">
+            <!-- Component Library -->
+            <div class="col-md-3">
+                <div class="component-library p-3">
+                    <h5 class="text-center mb-3">
+                        <i class="fas fa-th-large text-primary"></i>
+                        Component Library
+                    </h5>
+                    
+                    <!-- Search -->
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="componentSearch" 
+                               placeholder="Search components..." onkeyup="filterComponents()">
+                    </div>
+                    
+                    <!-- Complexity Filter -->
+                    <div class="mb-3">
+                        <label class="form-label">Complexity Level:</label>
+                        <select class="form-select" id="complexityFilter" onchange="filterComponents()">
+                            <option value="">All Levels</option>
+                            <option value="1">Beginner (1-2)</option>
+                            <option value="3">Intermediate (3-4)</option>
+                            <option value="5">Advanced (5+)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Component Cards -->
+                    <div id="componentCards">
+                        <!-- Components will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Breadboard Area -->
+            <div class="col-md-6">
+                <div class="breadboard-canvas" id="breadboardCanvas">
+                    <!-- Raspberry Pi representation -->
+                    <div class="breadboard-pi" id="raspberryPi">
+                        <div class="text-center text-white mt-2">
+                            <small><strong>Raspberry Pi</strong></small>
+                        </div>
+                        <!-- GPIO pins will be generated here -->
+                    </div>
+                    
+                    <!-- Main breadboard -->
+                    <div class="breadboard-main" id="mainBreadboard">
+                        <div class="text-center text-white mt-2">
+                            <small><strong>Breadboard</strong></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Component visualizations will be added here -->
+                    <div id="componentVisualizations"></div>
+                    
+                    <!-- Connection wires -->
+                    <div id="connectionWires"></div>
+                </div>
+                
+                <!-- Natural Language Interface -->
+                <div class="mt-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-comments"></i>
+                                Natural Language Interface
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="input-group">
+                                <input type="text" class="form-control nlp-input" 
+                                       id="nlpInput" placeholder="Describe your project: 'Build a temperature monitor with LCD display'">
+                                <button class="btn btn-primary" onclick="processNaturalLanguage()">
+                                    <i class="fas fa-magic"></i> Create Project
+                                </button>
+                            </div>
+                            <div id="nlpResult" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Info Panel -->
+            <div class="col-md-3">
+                <!-- Current Project -->
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-project-diagram"></i>
+                            Current Project
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="currentComponents">
+                            <p class="text-muted">No components added yet</p>
+                        </div>
+                        <div id="projectComplexity" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Smart Suggestions -->
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="fas fa-lightbulb"></i>
+                            Smart Suggestions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="smartSuggestions">
+                            <p class="text-muted">Add components to see suggestions</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assembly Guide -->
+                <div class="card mb-3">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-tools"></i>
+                            Assembly Guide
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="assemblyGuide">
+                            <p class="text-muted">Select components for assembly instructions</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generated Code -->
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-code"></i>
+                            Generated Code
+                            <button class="btn btn-sm btn-outline-light float-end" onclick="copyCode()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <pre class="code-output" id="generatedCode">// Code will appear here after adding components</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validation Panel -->
+    <div class="validation-panel" id="validationPanel" style="display: none;">
+        <h6 class="text-success">
+            <i class="fas fa-check-circle"></i>
+            Project Validation
+        </h6>
+        <div id="validationResults"></div>
+    </div>
+
+    <!-- Deployment Modal -->
+    <div class="modal fade" id="deploymentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Deploy to Raspberry Pi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Raspberry Pi IP Address:</label>
+                        <input type="text" class="form-control" id="piIpAddress" placeholder="192.168.1.100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username:</label>
+                        <input type="text" class="form-control" id="piUsername" value="pi">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="autoRun">
+                        <label class="form-check-label" for="autoRun">
+                            Auto-run after deployment
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmDeployment()">Deploy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/breadboard.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/nlp.js"></script>
+    
+    <script>
+        // Global state
+        let currentProject = {
+            components: [],
+            connections: [],
+            generatedCode: '',
+            validation: null
+        };
+        
+        let componentDatabase = {};
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeGPIOPins();
+            loadComponents();
+            setupEventListeners();
+        });
+
+        function initializeGPIOPins() {
+            const piElement = document.getElementById('raspberryPi');
+            const gpioLayout = [
+                [2, 4], [3, 6], [8, 10], [7, 12], [11, 14], [13, 16], 
+                [15, 18], [19, 20], [21, 22], [23, 24], [26, 28],
+                [29, 30], [31, 32], [33, 34], [35, 36], [37, 38], [39, 40]
+            ];
+            
+            gpioLayout.forEach((row, index) => {
+                row.forEach((pin, pinIndex) => {
+                    const pinElement = document.createElement('div');
+                    pinElement.className = 'gpio-pin';
+                    pinElement.id = `gpio-${pin}`;
+                    pinElement.style.left = `${10 + pinIndex * 30}px`;
+                    pinElement.style.top = `${30 + index * 20}px`;
+                    pinElement.title = `GPIO ${pin}`;
+                    pinElement.onclick = () => selectPin(pin);
+                    piElement.appendChild(pinElement);
+                });
+            });
+        }
+
+        async function loadComponents() {
+            try {
+                const response = await fetch('/api/components');
+                componentDatabase = await response.json();
+                renderComponentLibrary();
+            } catch (error) {
+                console.error('Error loading components:', error);
+            }
+        }
+
+        function renderComponentLibrary() {
+            const container = document.getElementById('componentCards');
+            container.innerHTML = '';
+            
+            Object.entries(componentDatabase).forEach(([name, component]) => {
+                const card = document.createElement('div');
+                card.className = 'component-card';
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h6 class="mb-1">${name.replace(/_/g, ' ')}</h6>
+                        <span class="badge complexity-badge complexity-${component.complexity || 1}">
+                            Level ${component.complexity || 1}
+                        </span>
+                    </div>
+                    <p class="mb-2 text-muted small">
+                        ${component.examples ? component.examples.length : 0} examples available
+                    </p>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-secondary">
+                            Pins: ${Array.isArray(component.pins_used) ? component.pins_used.join(', ') : 'Various'}
+                        </small>
+                        <button class="btn btn-sm btn-outline-primary" onclick="addComponent('${name}')">
+                            Add
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function addComponent(componentName) {
+            try {
+                const response = await fetch('/api/breadboard/add_component', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        component: componentName,
+                        timestamp: Date.now()
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    currentProject = result.breadboard_state;
+                    updateProjectDisplay();
+                    updateGeneratedCode(result.generated_code);
+                    visualizeComponent(componentName, result.breadboard_state.components.slice(-1)[0]);
+                }
+            } catch (error) {
+                console.error('Error adding component:', error);
+            }
+        }
+
+        function updateProjectDisplay() {
+            const container = document.getElementById('currentComponents');
+            if (currentProject.components.length === 0) {
+                container.innerHTML = '<p class="text-muted">No components added yet</p>';
+                return;
+            }
+            
+            container.innerHTML = currentProject.components.map(comp => `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>${comp.name.replace(/_/g, ' ')}</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeComponent('${comp.name}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Update complexity indicator
+            const totalComplexity = currentProject.components.reduce((sum, comp) => 
+                sum + (componentDatabase[comp.name]?.complexity || 1), 0);
+            
+            document.getElementById('projectComplexity').innerHTML = `
+                <div class="progress">
+                    <div class="progress-bar" style="width: ${Math.min(totalComplexity * 10, 100)}%">
+                        Complexity: ${totalComplexity}
+                    </div>
+                </div>
+            `;
+            
+            // Update suggestions
+            updateSmartSuggestions();
+        }
+
+        function updateSmartSuggestions() {
+            const container = document.getElementById('smartSuggestions');
+            if (currentProject.suggestions && currentProject.suggestions.length > 0) {
+                container.innerHTML = currentProject.suggestions.map(suggestion => `
+                    <div class="mb-2">
+                        <strong>${suggestion.component}</strong>
+                        <br><small class="text-muted">${suggestion.reason}</small>
+                        <br><button class="btn btn-sm btn-outline-success mt-1" onclick="addComponent('${suggestion.component}')">
+                            Add
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-muted">Add components to see suggestions</p>';
+            }
+        }
+
+        function visualizeComponent(componentName, componentData) {
+            const canvas = document.getElementById('componentVisualizations');
+            const visualization = document.createElement('div');
+            visualization.className = 'component-visualization';
+            visualization.id = `vis-${componentName}`;
+            visualization.style.position = 'absolute';
+            visualization.style.background = '#17a2b8';
+            visualization.style.color = 'white';
+            visualization.style.padding = '5px 10px';
+            visualization.style.borderRadius = '5px';
+            visualization.style.fontSize = '12px';
+            visualization.style.left = Math.random() * 400 + 'px';
+            visualization.style.top = Math.random() * 200 + 'px';
+            visualization.innerHTML = componentName.replace(/_/g, ' ');
+            visualization.draggable = true;
+            canvas.appendChild(visualization);
+            
+            // Highlight suggested pins
+            if (componentData.pins) {
+                Object.values(componentData.pins).forEach(pin => {
+                    const pinElement = document.getElementById(`gpio-${pin}`);
+                    if (pinElement) {
+                        pinElement.classList.add('suggested');
+                        setTimeout(() => pinElement.classList.remove('suggested'), 3000);
+                    }
+                });
+            }
+        }
+
+        function updateGeneratedCode(code) {
+            document.getElementById('generatedCode').textContent = code || '// No code generated yet';
+            currentProject.generatedCode = code;
+        }
+
+        async function validateProject() {
+            try {
+                const response = await fetch('/api/breadboard/validate');
+                const validation = await response.json();
+                
+                const panel = document.getElementById('validationPanel');
+                const results = document.getElementById('validationResults');
+                
+                panel.style.display = 'block';
+                
+                let html = '';
+                if (validation.valid) {
+                    html += '<div class="alert alert-success alert-sm">✅ Project is valid!</div>';
+                } else {
+                    html += '<div class="alert alert-danger alert-sm">❌ Issues found:</div>';
+                    validation.errors.forEach(error => {
+                        html += `<div class="text-danger small">• ${error}</div>`;
+                    });
+                }
+                
+                validation.warnings.forEach(warning => {
+                    html += `<div class="text-warning small">⚠️ ${warning}</div>`;
+                });
+                
+                results.innerHTML = html;
+                
+                setTimeout(() => {
+                    panel.style.display = 'none';
+                }, 5000);
+                
+            } catch (error) {
+                console.error('Error validating project:', error);
+            }
+        }
+
+        async function generateCode() {
+            try {
+                const response = await fetch('/api/code/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        components: currentProject.components.map(c => c.name),
+                        type: 'advanced'
+                    })
+                });
+                
+                const result = await response.json();
+                updateGeneratedCode(result.code);
+                
+            } catch (error) {
+                console.error('Error generating code:', error);
+            }
+        }
+
+        function deployToPI() {
+            if (!currentProject.generatedCode) {
+                alert('Please generate code first');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('deploymentModal'));
+            modal.show();
+        }
+
+        async function confirmDeployment() {
+            const ip = document.getElementById('piIpAddress').value;
+            const username = document.getElementById('piUsername').value;
+            const autoRun = document.getElementById('autoRun').checked;
+            
+            if (!ip) {
+                alert('Please enter Raspberry Pi IP address');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: currentProject.generatedCode,
+                        filename: 'generated_project.py',
+                        pi_ip: ip,
+                        auto_run: autoRun
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Successfully deployed to Raspberry Pi!');
+                    bootstrap.Modal.getInstance(document.getElementById('deploymentModal')).hide();
+                } else {
+                    alert('❌ Deployment failed: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Error deploying:', error);
+                alert('❌ Deployment error: ' + error.message);
+            }
+        }
+
+        async function processNaturalLanguage() {
+            const input = document.getElementById('nlpInput').value;
+            if (!input.trim()) return;
+            
+            try {
+                const response = await fetch('/api/nlp/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: input })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Clear current project
+                    currentProject.components = [];
+                    document.getElementById('componentVisualizations').innerHTML = '';
+                    
+                    // Add suggested components
+                    for (const component of result.selected_components) {
+                        await addComponent(component);
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for visual effect
+                    }
+                    
+                    // Show results
+                    document.getElementById('nlpResult').innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>Project created!</strong><br>
+                            Components: ${result.selected_components.join(', ')}<br>
+                            Understood: ${result.understood_intents.join(', ')}
+                        </div>
+                    `;
+                    
+                    updateGeneratedCode(result.generated_code);
+                } else {
+                    document.getElementById('nlpResult').innerHTML = `
+                        <div class="alert alert-warning">
+                            Could not understand request. Try: ${result.suggestions.slice(0, 3).join(', ')}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error processing NLP:', error);
+            }
+        }
+
+        function filterComponents() {
+            const search = document.getElementById('componentSearch').value.toLowerCase();
+            const complexity = document.getElementById('complexityFilter').value;
+            
+            renderComponentLibrary(); // Re-render with filters
+            
+            const cards = document.querySelectorAll('.component-card');
+            cards.forEach(card => {
+                const componentName = card.querySelector('h6').textContent.toLowerCase();
+                const componentComplexity = card.querySelector('.complexity-badge').textContent;
+                
+                let showCard = true;
+                
+                if (search && !componentName.includes(search)) {
+                    showCard = false;
+                }
+                
+                if (complexity) {
+                    const level = parseInt(componentComplexity.match(/\d+/)[0]);
+                    if (complexity === '1' && level > 2) showCard = false;
+                    if (complexity === '3' && (level < 3 || level > 4)) showCard = false;
+                    if (complexity === '5' && level < 5) showCard = false;
+                }
+                
+                card.style.display = showCard ? 'block' : 'none';
+            });
+        }
+
+        function copyCode() {
+            const code = document.getElementById('generatedCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                // Show brief success message
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => btn.innerHTML = originalText, 1000);
+            });
+        }
+
+        function selectPin(pinNumber) {
+            // Handle pin selection for manual component placement
+            console.log(`Selected GPIO ${pinNumber}`);
+        }
+
+        function setupEventListeners() {
+            // Enter key for NLP input
+            document.getElementById('nlpInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    processNaturalLanguage();
+                }
+            });
+            
+            // Auto-save project state
+            setInterval(() => {
+                localStorage.setItem('raspberryPiProject', JSON.stringify(currentProject));
+            }, 30000);
+            
+            // Load saved project on startup
+            const saved = localStorage.getItem('raspberryPiProject');
+            if (saved) {
+                currentProject = JSON.parse(saved);
+                updateProjectDisplay();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+[Unit]
+Description=Raspberry Pi Companion WebSocket Server
+Documentation=https://github.com/raspberry-pi-starter-kit
+After=network.target pigpiod.service
+Wants=pigpiod.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/pi-companion
+ExecStartPre=/bin/sleep 10
+ExecStart=/home/pi/pi-companion/venv/bin/python /home/pi/pi-companion/pi_server.py
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pi-companion
+
+# Environment variables
+Environment=PYTHONPATH=/home/pi/pi-companion
+Environment=PIGPIO_ADDR=127.0.0.1
+Environment=PIGPIO_PORT=8888
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/pi/pi-companion /var/log
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=1024
+LimitNPROC=512
+
+# GPIO access
+SupplementaryGroups=gpio spi i2c
+
+[Install]
+WantedBy=multi-user.target

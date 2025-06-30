@@ -1,0 +1,419 @@
+{
+  "component_mapping": {
+    "LED": {
+      "examples": [
+        "01.1.1_Blink",
+        "02.1.1_ButtonLED", 
+        "02.2.1_Tablelamp",
+        "03.1.1_LightWater",
+        "04.1.1_BreathingLED",
+        "23.1.1_SenseLED"
+      ],
+      "pins_used": ["GPIO17", "GPIO18", "GPIO27"],
+      "complexity": 1,
+      "libraries": ["gpiozero.LED"],
+      "common_patterns": [
+        "led.on()/led.off()",
+        "led.blink()",
+        "led.pulse()"
+      ]
+    },
+    "RGB_LED": {
+      "examples": [
+        "05.1.1_ColorfulLED",
+        "09.1.1_ColorfulSoftlight",
+        "32.2.1_RainbowLight"
+      ],
+      "pins_used": ["GPIO17", "GPIO18", "GPIO27"],
+      "complexity": 2,
+      "libraries": ["gpiozero.RGBLED"],
+      "common_patterns": [
+        "RGBLED(red=pin, green=pin, blue=pin)",
+        "led.red = value/100",
+        "led.color = (r, g, b)"
+      ]
+    },
+    "Button": {
+      "examples": [
+        "02.1.1_ButtonLED",
+        "02.2.1_Tablelamp"
+      ],
+      "pins_used": ["GPIO18"],
+      "complexity": 1,
+      "libraries": ["gpiozero.Button"],
+      "common_patterns": [
+        "button.is_pressed",
+        "button.wait_for_press()",
+        "button.when_pressed = function"
+      ]
+    },
+    "Buzzer": {
+      "examples": [
+        "06.1.1_Doorbell",
+        "06.2.1_Alertor"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 2,
+      "libraries": ["gpiozero.Buzzer", "gpiozero.TonalBuzzer"],
+      "common_patterns": [
+        "buzzer.on()/buzzer.off()",
+        "buzzer.beep()",
+        "tonal_buzzer.play(frequency)"
+      ]
+    },
+    "ADC_PCF8591": {
+      "examples": [
+        "07.1.1_ADC",
+        "08.1.1_Softlight",
+        "09.1.1_ColorfulSoftlight",
+        "10.1.1_Nightlamp",
+        "11.1.1_Thermometer",
+        "12.1.1_Joystick"
+      ],
+      "pins_used": ["GPIO2", "GPIO3"],
+      "complexity": 3,
+      "libraries": ["ADCDevice.PCF8591"],
+      "i2c_address": "0x48",
+      "common_patterns": [
+        "adc.detectI2C(0x48)",
+        "adc.analogRead(channel)",
+        "voltage = value / 255.0 * 3.3"
+      ]
+    },
+    "ADS7830": {
+      "examples": [
+        "07.1.1_ADC"
+      ],
+      "pins_used": ["GPIO2", "GPIO3"],
+      "complexity": 3,
+      "libraries": ["ADCDevice.ADS7830"],
+      "i2c_address": "0x4b",
+      "common_patterns": [
+        "adc.detectI2C(0x4b)",
+        "adc.analogRead(channel)"
+      ]
+    },
+    "Motor_DC": {
+      "examples": [
+        "13.1.1_Motor"
+      ],
+      "pins_used": ["GPIO18", "GPIO19"],
+      "complexity": 4,
+      "libraries": ["gpiozero.Motor"],
+      "common_patterns": [
+        "Motor(forward=pin, backward=pin)",
+        "motor.forward(speed)",
+        "motor.backward(speed)",
+        "motor.stop()"
+      ]
+    },
+    "Relay": {
+      "examples": [
+        "14.1.1_Relay"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 2,
+      "libraries": ["gpiozero.OutputDevice"],
+      "common_patterns": [
+        "relay.on()/relay.off()",
+        "relay.toggle()"
+      ]
+    },
+    "Servo": {
+      "examples": [
+        "15.1.1_Sweep"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 3,
+      "libraries": ["gpiozero.Servo"],
+      "common_patterns": [
+        "servo.min()/servo.max()",
+        "servo.mid()",
+        "servo.value = angle"
+      ]
+    },
+    "Stepper_Motor": {
+      "examples": [
+        "16.1.1_SteppingMotor"
+      ],
+      "pins_used": ["GPIO18", "GPIO19", "GPIO20", "GPIO21"],
+      "complexity": 5,
+      "libraries": ["Custom stepper control"],
+      "common_patterns": [
+        "step_sequence",
+        "direction control",
+        "speed control"
+      ]
+    },
+    "74HC595_Shift_Register": {
+      "examples": [
+        "17.1.1_LightWater02",
+        "18.1.1_SevenSegmentDisplay",
+        "18.2.1_StopWatch",
+        "19.1.1_LEDMatrix"
+      ],
+      "pins_used": ["GPIO17", "GPIO18", "GPIO27"],
+      "complexity": 4,
+      "libraries": ["Custom shift register control"],
+      "common_patterns": [
+        "shiftOut(data, clock, value)",
+        "latch control",
+        "cascade multiple registers"
+      ]
+    },
+    "LCD1602_I2C": {
+      "examples": [
+        "20.1.1_I2CLCD1602"
+      ],
+      "pins_used": ["GPIO2", "GPIO3"],
+      "complexity": 4,
+      "libraries": ["LCD1602.LCD1602"],
+      "i2c_address": "0x27 or 0x3F",
+      "common_patterns": [
+        "lcd.write(row, col, text)",
+        "lcd.clear()",
+        "lcd.backlight()"
+      ]
+    },
+    "DHT11": {
+      "examples": [
+        "21.1.1_DHT11"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 5,
+      "libraries": ["Freenove_DHT.DHT"],
+      "common_patterns": [
+        "dht.readDHT11()",
+        "dht.getTemperature()",
+        "dht.getHumidity()",
+        "error handling for failed reads"
+      ]
+    },
+    "Matrix_Keypad": {
+      "examples": [
+        "22.1.1_MatrixKeypad"
+      ],
+      "pins_used": ["GPIO18", "GPIO19", "GPIO20", "GPIO21", "GPIO22", "GPIO23", "GPIO24"],
+      "complexity": 4,
+      "libraries": ["Keypad.Keypad"],
+      "common_patterns": [
+        "keypad.getKey()",
+        "row/column scanning",
+        "debouncing"
+      ]
+    },
+    "PIR_Sensor": {
+      "examples": [
+        "23.1.1_SenseLED"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 2,
+      "libraries": ["gpiozero.MotionSensor"],
+      "common_patterns": [
+        "pir.motion_detected",
+        "pir.when_motion = function",
+        "pir.when_no_motion = function"
+      ]
+    },
+    "Ultrasonic_HC_SR04": {
+      "examples": [
+        "24.1.1_UltrasonicRanging"
+      ],
+      "pins_used": ["GPIO20", "GPIO21"],
+      "complexity": 3,
+      "libraries": ["gpiozero.DistanceSensor"],
+      "common_patterns": [
+        "DistanceSensor(echo=pin, trigger=pin)",
+        "sensor.distance",
+        "distance calculation"
+      ]
+    },
+    "MPU6050": {
+      "examples": [
+        "25.1.1_MPU6050"
+      ],
+      "pins_used": ["GPIO2", "GPIO3"],
+      "complexity": 7,
+      "libraries": ["MPU6050.MPU6050"],
+      "i2c_address": "0x68 or 0x69",
+      "common_patterns": [
+        "mpu.dmp_initialize()",
+        "mpu.get_acceleration()",
+        "mpu.get_rotation()",
+        "data scaling and conversion"
+      ]
+    },
+    "Sound_Sensor": {
+      "examples": [
+        "26.1.1_VoiceLamp"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 2,
+      "libraries": ["Digital input"],
+      "common_patterns": [
+        "digital threshold detection",
+        "sound level triggering"
+      ]
+    },
+    "Touch_Sensor": {
+      "examples": [
+        "27.1.1_TouchSensor",
+        "27.2.1_Discolor"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 2,
+      "libraries": ["sensor.sensor"],
+      "common_patterns": [
+        "touch detection",
+        "state change detection"
+      ]
+    },
+    "Photoresistor": {
+      "examples": [
+        "28.1.1_PhotoSensor",
+        "28.2.1_Alertor"
+      ],
+      "pins_used": ["ADC channel"],
+      "complexity": 2,
+      "libraries": ["ADCDevice"],
+      "common_patterns": [
+        "light level reading",
+        "threshold comparison",
+        "day/night detection"
+      ]
+    },
+    "Hall_Sensor": {
+      "examples": [
+        "29.1.1_HallSensor",
+        "29.2.1_Alertor"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 2,
+      "libraries": ["sensor.sensor"],
+      "common_patterns": [
+        "magnetic field detection",
+        "proximity sensing"
+      ]
+    },
+    "IR_Sensor": {
+      "examples": [
+        "30.1.1_InfraredSensor",
+        "30.2.1_Alertor"
+      ],
+      "pins_used": ["GPIO17"],
+      "complexity": 2,
+      "libraries": ["sensor.sensor"],
+      "common_patterns": [
+        "infrared detection",
+        "motion sensing"
+      ]
+    },
+    "Rotary_Encoder": {
+      "examples": [
+        "31.1.1_RotaryEncoder",
+        "31.2.1_Dimmable"
+      ],
+      "pins_used": ["GPIO17", "GPIO18", "GPIO27"],
+      "complexity": 4,
+      "libraries": ["gpiozero.RotaryEncoder"],
+      "common_patterns": [
+        "RotaryEncoder(a=pin, b=pin)",
+        "encoder.steps",
+        "encoder.when_rotated = function"
+      ]
+    },
+    "WS2812_LED_Strip": {
+      "examples": [
+        "32.1.1_Ledpixel",
+        "32.2.1_RainbowLight",
+        "32.3.1_SpiLedpixel"
+      ],
+      "pins_used": ["GPIO18", "SPI pins"],
+      "complexity": 6,
+      "libraries": ["rpi_ws281x", "Freenove_WS2812_SPI"],
+      "common_patterns": [
+        "pixel array control",
+        "color patterns",
+        "animation effects"
+      ]
+    },
+    "BMP180_Barometer": {
+      "examples": [
+        "33.1.1_Barometer"
+      ],
+      "pins_used": ["GPIO2", "GPIO3"],
+      "complexity": 5,
+      "libraries": ["smbus"],
+      "i2c_address": "0x77",
+      "common_patterns": [
+        "pressure reading",
+        "temperature compensation",
+        "altitude calculation"
+      ]
+    },
+    "RFID_MFRC522": {
+      "examples": [
+        "34.1.1_RFID"
+      ],
+      "pins_used": ["SPI pins"],
+      "complexity": 8,
+      "libraries": ["MFRC522.MFRC522"],
+      "common_patterns": [
+        "card detection",
+        "UID reading",
+        "data read/write",
+        "authentication"
+      ]
+    },
+    "Camera_Module": {
+      "examples": [
+        "36.1.1_Camera",
+        "36.2.1_Video"
+      ],
+      "pins_used": ["Camera connector"],
+      "complexity": 6,
+      "libraries": ["picamera"],
+      "common_patterns": [
+        "image capture",
+        "video recording",
+        "preview display"
+      ]
+    }
+  },
+  "learning_progression": {
+    "level_1_basic": [
+      "LED", "Button", "Buzzer"
+    ],
+    "level_2_analog": [
+      "ADC_PCF8591", "Photoresistor", "Touch_Sensor"
+    ],
+    "level_3_motors": [
+      "Motor_DC", "Servo", "Relay"
+    ],
+    "level_4_displays": [
+      "74HC595_Shift_Register", "LCD1602_I2C"
+    ],
+    "level_5_sensors": [
+      "DHT11", "Ultrasonic_HC_SR04", "PIR_Sensor"
+    ],
+    "level_6_advanced": [
+      "MPU6050", "WS2812_LED_Strip", "Camera_Module"
+    ],
+    "level_7_complex": [
+      "RFID_MFRC522", "BMP180_Barometer"
+    ]
+  },
+  "pin_usage_analysis": {
+    "most_common_pins": {
+      "GPIO17": "Used in 20+ projects (LED, sensors, relays)",
+      "GPIO18": "Used in 15+ projects (buttons, motors, encoders)",
+      "GPIO2/GPIO3": "I2C communication (12+ projects)",
+      "GPIO27": "RGB LED blue, shift register (8+ projects)"
+    },
+    "pin_conflicts": {
+      "I2C_pins": "GPIO2/GPIO3 shared by all I2C devices",
+      "SPI_pins": "GPIO9-11 shared by SPI devices",
+      "hardware_PWM": "GPIO12,13,18,19 for precise PWM"
+    }
+  }
+}

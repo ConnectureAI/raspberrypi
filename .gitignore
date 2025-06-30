@@ -1,0 +1,30 @@
+# --- Security ---
+# Ignore SSH keys
+id_rsa
+id_rsa.pub
+
+# Ignore sensitive configuration files.
+# Review these files to ensure they don't contain secrets.
+config.json
+*.local.json
+
+# --- Python ---
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+venv/
+*.venv
+env/
+.env
+
+# --- Logs ---
+*.log
+
+# --- IDE / Editor specific ---
+.claude/
+.vscode/
+.idea/

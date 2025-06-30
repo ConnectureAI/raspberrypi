@@ -1,0 +1,43 @@
+# Raspberry Pi Companion System Dependencies
+# Core GPIO and hardware libraries
+RPi.GPIO==0.7.1
+gpiozero==1.6.2
+pigpio==1.78
+
+# Communication protocols
+smbus==1.1.post2
+spidev==3.6
+
+# WebSocket communication
+websockets==11.0.3
+asyncio-mqtt==0.11.1
+
+# Data handling and utilities
+numpy==1.24.3
+aiofiles==23.1.0
+
+# Additional sensor libraries
+w1thermsensor==2.0.0
+adafruit-circuitpython-motor==3.4.8
+adafruit-circuitpython-servokit==1.3.15
+adafruit-circuitpython-pca9685==3.4.10
+
+# I2C device libraries
+adafruit-circuitpython-ads1x15==2.2.21
+adafruit-circuitpython-bmp280==3.2.19
+adafruit-circuitpython-mcp3xxx==1.4.13
+adafruit-circuitpython-lis3dh==1.1.14
+
+# Display libraries  
+luma.oled==3.10.0
+luma.lcd==2.10.0
+
+# RFID and wireless
+mfrc522==0.0.7
+pynrf24==1.3.3
+
+# System monitoring
+psutil==5.9.5
+
+# Development and debugging
+pyserial==3.5

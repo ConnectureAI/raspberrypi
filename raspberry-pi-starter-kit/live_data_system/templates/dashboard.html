@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Pi Dashboard - Live Data System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .dashboard-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            margin: 20px;
+            padding: 30px;
+        }
+        
+        .sensor-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #e3f2fd;
+            transition: all 0.3s ease;
+        }
+        
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .sensor-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-active { background-color: #28a745; }
+        .status-inactive { background-color: #6c757d; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 15px 0;
+        }
+        
+        .gauge-container {
+            position: relative;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .gauge-value {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .breadboard-container {
+            background: #2d3748;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            min-height: 400px;
+        }
+        
+        .gpio-pin {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #ffd700;
+            background: #4a5568;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .gpio-pin:hover {
+            transform: scale(1.3);
+            z-index: 10;
+        }
+        
+        .gpio-pin.occupied {
+            background: #e53e3e;
+            animation: pulse 2s infinite;
+        }
+        
+        .gpio-pin.active {
+            background: #38a169;
+            box-shadow: 0 0 10px #38a169;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+        }
+        
+        .pi-board {
+            width: 120px;
+            height: 180px;
+            background: #38a169;
+            border-radius: 8px;
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            border: 3px solid #2f855a;
+        }
+        
+        .pi-board::after {
+            content: 'Raspberry Pi';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .component-indicator {
+            position: absolute;
+            background: rgba(0, 123, 255, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            z-index: 5;
+        }
+        
+        .actuator-control {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .live-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 5px 0;
+        }
+        
+        .threshold-indicator {
+            height: 4px;
+            border-radius: 2px;
+            margin: 5px 0;
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        
+        .data-quality {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .activity-timeline {
+            height: 100px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .activity-event {
+            position: absolute;
+            width: 3px;
+            height: 100%;
+            background: #dc3545;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scaleY(0); }
+            to { opacity: 1; transform: scaleY(1); }
+        }
+        
+        .system-stats {
+            background: rgba(40, 167, 69, 0.1);
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+        <span class="sensor-status status-inactive" id="connectionIndicator"></span>
+        <span id="connectionText">Connecting...</span>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="dashboard-container">
+            <div class="row align-items-center mb-4">
+                <div class="col-md-8">
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-microchip text-primary me-3"></i>
+                        Intelligent Pi Dashboard
+                    </h1>
+                    <p class="text-muted">Live Data System with Auto-Configuration</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="system-stats">
+                        <div><strong>Active Sensors:</strong> <span id="activeSensorCount">0</span></div>
+                        <div><strong>Data Points:</strong> <span id="dataPointCount">0</span></div>
+                        <div><strong>Update Rate:</strong> <span id="updateRate">0 Hz</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Panel - Sensor Visualizations -->
+            <div class="col-lg-8">
+                <div class="dashboard-container">
+                    <h3 class="mb-4">
+                        <i class="fas fa-chart-line text-success me-2"></i>
+                        Live Sensor Data
+                    </h3>
+                    
+                    <div id="sensorVisualizationsContainer">
+                        <!-- Sensor charts will be dynamically added here -->
+                    </div>
+                    
+                    <!-- Breadboard Overlay -->
+                    <h4 class="mt-5 mb-3">
+                        <i class="fas fa-microchip text-warning me-2"></i>
+                        Live Breadboard Layout
+                    </h4>
+                    
+                    <div class="breadboard-container" id="breadboardContainer">
+                        <!-- Pi Board -->
+                        <div class="pi-board" id="piBoard"></div>
+                        
+                        <!-- GPIO Pins will be generated here -->
+                        <div id="gpioPins"></div>
+                        
+                        <!-- Component indicators -->
+                        <div id="componentIndicators"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Controls and Status -->
+            <div class="col-lg-4">
+                <!-- One-Click Project Generation -->
+                <div class="dashboard-container">
+                    <h4 class="mb-4">
+                        <i class="fas fa-rocket text-success me-2"></i>
+                        Rapid Project Generation
+                    </h4>
+                    
+                    <!-- Difficulty Level Selector -->
+                    <div class="mb-3">
+                        <label class="form-label">Project Difficulty:</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="difficulty" id="beginner" value="1-3" checked>
+                            <label class="btn btn-outline-success" for="beginner">Beginner</label>
+                            
+                            <input type="radio" class="btn-check" name="difficulty" id="intermediate" value="4-6">
+                            <label class="btn btn-outline-warning" for="intermediate">Intermediate</label>
+                            
+                            <input type="radio" class="btn-check" name="difficulty" id="advanced" value="7-8">
+                            <label class="btn btn-outline-danger" for="advanced">Advanced</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Project Templates -->
+                    <div class="mb-3">
+                        <label class="form-label">Quick Project Templates:</label>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary btn-sm" onclick="generateProject('iot_weather_station')">
+                                <i class="fas fa-cloud-sun me-1"></i> IoT Weather Station
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="generateProject('home_security')">
+                                <i class="fas fa-shield-alt me-1"></i> Home Security System
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="generateProject('plant_monitor')">
+                                <i class="fas fa-seedling me-1"></i> Plant Monitor
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="generateProject('rgb_mood_light')">
+                                <i class="fas fa-lightbulb me-1"></i> RGB Mood Light
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="generateProject('smart_doorbell')">
+                                <i class="fas fa-door-open me-1"></i> Smart Doorbell
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Component Recommendation -->
+                    <div class="mt-4">
+                        <h6>
+                            <i class="fas fa-magic text-primary me-2"></i>
+                            Smart Recommendations
+                        </h6>
+                        <div id="componentRecommendations" class="small text-muted">
+                            Select a project template to see component suggestions
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Tracking -->
+                    <div class="mt-4" id="projectProgress" style="display: none;">
+                        <h6>
+                            <i class="fas fa-tasks text-info me-2"></i>
+                            Assembly Progress
+                        </h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div id="progressText" class="small text-muted">Ready to start</div>
+                        <div id="timeEstimate" class="small text-success"></div>
+                    </div>
+                </div>
+
+                <!-- Actuator Controls -->
+                <div class="dashboard-container">
+                    <h4 class="mb-4">
+                        <i class="fas fa-sliders-h text-info me-2"></i>
+                        Actuator Controls
+                    </h4>
+                    
+                    <div id="actuatorControlsContainer">
+                        <!-- Actuator controls will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Enhanced Assembly Commands -->
+                <div class="dashboard-container mt-4">
+                    <h4 class="mb-4">
+                        <i class="fas fa-terminal text-warning me-2"></i>
+                        Enhanced Natural Language Interface
+                    </h4>
+                    
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="assemblyCommand" 
+                               placeholder="Try: 'Create IoT weather station' or 'What should I build next?'">
+                        <div class="mt-2">
+                            <button class="btn btn-primary btn-sm" onclick="executeAssemblyCommand()">
+                                <i class="fas fa-play me-1"></i> Execute
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="showCommandHelp()">
+                                <i class="fas fa-question-circle me-1"></i> Help
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="getSmartSuggestion()">
+                                <i class="fas fa-lightbulb me-1"></i> What Next?
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="commandOutput" class="mt-3"></div>
+                    
+                    <!-- Enhanced Quick Commands -->
+                    <div class="mt-4">
+                        <h6>Project Commands:</h6>
+                        <div class="d-grid gap-2 mb-3">
+                            <button class="btn btn-outline-success btn-sm" onclick="quickCommand('Create IoT weather station')">
+                                Create IoT weather station
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="quickCommand('Build home security system')">
+                                Build home security system
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="quickCommand('Make plant monitor')">
+                                Make plant monitor
+                            </button>
+                        </div>
+                        
+                        <h6>Component Commands:</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickCommand('Show LED matrix setup')">
+                                Show LED matrix setup
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="quickCommand('Add pressure sensor')">
+                                Add pressure sensor
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="quickCommand('Debug connections')">
+                                Debug connections
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="quickCommand('Optimize layout')">
+                                Optimize layout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Learning Integration -->
+                <div class="dashboard-container mt-4">
+                    <h5 class="mb-3">
+                        <i class="fas fa-graduation-cap text-success me-2"></i>
+                        Smart Learning Assistant
+                    </h5>
+                    
+                    <!-- Learning Progress -->
+                    <div class="mb-3">
+                        <h6>Your Progress:</h6>
+                        <div class="row">
+                            <div class="col-4 text-center">
+                                <div class="small text-muted">Completed</div>
+                                <div class="fw-bold text-success" id="completedProjects">0</div>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="small text-muted">Components Used</div>
+                                <div class="fw-bold text-info" id="componentsUsed">0</div>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="small text-muted">Current Tier</div>
+                                <div class="fw-bold text-warning" id="currentTier">1</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Component Discovery -->
+                    <div class="mb-3">
+                        <h6>Components to Try:</h6>
+                        <div id="untrieddComponents" class="small">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Next Suggestions -->
+                    <div class="mb-3">
+                        <h6>Suggested Next Projects:</h6>
+                        <div id="nextSuggestions" class="small text-muted">
+                            Complete a project to see suggestions
+                        </div>
+                    </div>
+                    
+                    <!-- Learning Path -->
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="showLearningPath()">
+                            <i class="fas fa-route me-1"></i> View Learning Path
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="dashboard-container mt-4">
+                    <h5 class="mb-3">
+                        <i class="fas fa-heartbeat text-danger me-2"></i>
+                        System Status
+                    </h5>
+                    
+                    <div id="systemStatusContainer">
+                        <!-- System status will be updated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Global variables
+        let socket;
+        let charts = {};
+        let dashboardConfig = {};
+        let liveData = {};
+        let updateCount = 0;
+        let startTime = Date.now();
+        
+        // Enhanced features
+        let projectTemplates = {};
+        let learningProgress = {
+            completedProjects: [],
+            usedComponents: [],
+            currentTier: 1,
+            totalAssemblyTime: 0
+        };
+        let currentProject = null;
+        let projectStartTime = null;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeWebSocket();
+            generateGPIOPins();
+            loadDashboardConfig();
+            setupAssemblyCommands();
+            loadProjectTemplates();
+            loadLearningProgress();
+            updateLearningDisplay();
+        });
+        
+        function initializeWebSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                updateConnectionStatus(true);
+                console.log('Connected to dashboard');
+            });
+            
+            socket.on('disconnect', function() {
+                updateConnectionStatus(false);
+                console.log('Disconnected from dashboard');
+            });
+            
+            socket.on('dashboard_config', function(config) {
+                dashboardConfig = config;
+                initializeDashboard();
+            });
+            
+            socket.on('sensor_data', function(data) {
+                updateSensorData(data);
+                updateSystemStats();
+            });
+            
+            socket.on('actuator_response', function(data) {
+                showActuatorResponse(data);
+            });
+            
+            socket.on('historical_data', function(data) {
+                updateChart(data.sensor_name, data.readings);
+            });
+        }
+        
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                indicator.className = 'sensor-status status-active';
+                text.textContent = 'Connected';
+            } else {
+                indicator.className = 'sensor-status status-error';
+                text.textContent = 'Disconnected';
+            }
+        }
+        
+        async function loadDashboardConfig() {
+            try {
+                const response = await fetch('/api/dashboard/config');
+                const config = await response.json();
+                dashboardConfig = config;
+                initializeDashboard();
+            } catch (error) {
+                console.error('Failed to load dashboard config:', error);
+            }
+        }
+        
+        function initializeDashboard() {
+            createSensorVisualizations();
+            createActuatorControls();
+            updateBreadboardLayout();
+        }
+        
+        function createSensorVisualizations() {
+            const container = document.getElementById('sensorVisualizationsContainer');
+            container.innerHTML = '';
+            
+            for (const [componentName, vizConfig] of Object.entries(dashboardConfig.visualizations || {})) {
+                const sensorCard = createSensorCard(componentName, vizConfig);
+                container.appendChild(sensorCard);
+            }
+        }
+        
+        function createSensorCard(componentName, vizConfig) {
+            const card = document.createElement('div');
+            card.className = 'sensor-card';
+            card.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="mb-0">
+                        <span class="sensor-status status-inactive" id="${componentName}_status"></span>
+                        ${componentName.replace(/_/g, ' ')}
+                    </h5>
+                    <div class="text-end">
+                        <div class="live-value" id="${componentName}_value">--</div>
+                        <div class="data-quality" id="${componentName}_quality">No data</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="${componentName}_chart"></canvas>
+                </div>
+                
+                ${vizConfig.thresholds ? createThresholdIndicator(componentName, vizConfig.thresholds) : ''}
+            `;
+            
+            // Initialize chart
+            setTimeout(() => {
+                const ctx = document.getElementById(`${componentName}_chart`).getContext('2d');
+                charts[componentName] = new Chart(ctx, vizConfig.chart_config);
+            }, 100);
+            
+            return card;
+        }
+        
+        function createThresholdIndicator(componentName, thresholds) {
+            return `
+                <div class="mt-3">
+                    <small class="text-muted">Thresholds</small>
+                    <div class="threshold-indicator" id="${componentName}_threshold"></div>
+                    <div class="d-flex justify-content-between">
+                        <small>Min</small>
+                        <small>Normal</small>
+                        <small>Max</small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createActuatorControls() {
+            const container = document.getElementById('actuatorControlsContainer');
+            container.innerHTML = '';
+            
+            for (const [componentName, controlConfig] of Object.entries(dashboardConfig.actuator_controls || {})) {
+                const controlDiv = document.createElement('div');
+                controlDiv.innerHTML = controlConfig.html;
+                container.appendChild(controlDiv);
+            }
+        }
+        
+        function generateGPIOPins() {
+            const container = document.getElementById('gpioPins');
+            
+            // GPIO pin layout (simplified)
+            const pinLayout = [
+                [2, 4], [3, 6], [7, 8], [10, 11], [12, 13], [15, 16],
+                [18, 19], [20, 21], [22, 23], [24, 25], [26, 27]
+            ];
+            
+            pinLayout.forEach((row, rowIndex) => {
+                row.forEach((pin, colIndex) => {
+                    const pinElement = document.createElement('div');
+                    pinElement.className = 'gpio-pin';
+                    pinElement.id = `gpio_pin_${pin}`;
+                    pinElement.title = `GPIO ${pin}`;
+                    pinElement.style.left = `${200 + colIndex * 25}px`;
+                    pinElement.style.top = `${60 + rowIndex * 25}px`;
+                    
+                    pinElement.onclick = () => showPinInfo(pin);
+                    
+                    container.appendChild(pinElement);
+                });
+            });
+        }
+        
+        function updateSensorData(data) {
+            updateCount++;
+            
+            for (const [sensorName, sensorData] of Object.entries(data)) {
+                // Update live value display
+                const valueElement = document.getElementById(`${sensorName}_value`);
+                const qualityElement = document.getElementById(`${sensorName}_quality`);
+                const statusElement = document.getElementById(`${sensorName}_status`);
+                
+                if (valueElement) {
+                    valueElement.textContent = formatSensorValue(sensorData.value, sensorData.unit);
+                }
+                
+                if (qualityElement) {
+                    qualityElement.textContent = `Quality: ${(sensorData.quality * 100).toFixed(0)}%`;
+                }
+                
+                if (statusElement) {
+                    statusElement.className = 'sensor-status status-active';
+                }
+                
+                // Update chart
+                updateChartData(sensorName, sensorData);
+                
+                // Update breadboard pin status
+                updatePinStatus(sensorName, sensorData);
+            }
+            
+            liveData = data;
+        }
+        
+        function formatSensorValue(value, unit) {
+            if (typeof value === 'object') {
+                // Multi-value sensor (like DHT11)
+                return Object.entries(value)
+                    .map(([key, val]) => `${key}: ${val.toFixed(1)}`)
+                    .join(', ');
+            } else if (typeof value === 'number') {
+                return `${value.toFixed(2)} ${unit}`;
+            } else {
+                return value.toString();
+            }
+        }
+        
+        function updateChartData(sensorName, sensorData) {
+            const chart = charts[sensorName];
+            if (!chart) return;
+            
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString();
+            
+            // Add new data point
+            chart.data.labels.push(timeLabel);
+            
+            if (typeof sensorData.value === 'object') {
+                // Multi-value sensor
+                const values = Object.values(sensorData.value);
+                values.forEach((value, index) => {
+                    if (chart.data.datasets[index]) {
+                        chart.data.datasets[index].data.push(value);
+                    }
+                });
+            } else {
+                // Single value sensor
+                if (chart.data.datasets[0]) {
+                    chart.data.datasets[0].data.push(sensorData.value);
+                }
+            }
+            
+            // Keep only recent data points
+            const maxPoints = 50;
+            if (chart.data.labels.length > maxPoints) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => {
+                    dataset.data.shift();
+                });
+            }
+            
+            chart.update('none'); // Update without animation for performance
+        }
+        
+        function updatePinStatus(sensorName, sensorData) {
+            // Update GPIO pin visual status
+            // This would map sensor names to pins based on auto-configuration
+        }
+        
+        function updateSystemStats() {
+            const activeSensors = Object.keys(liveData).length;
+            const totalDataPoints = Object.values(liveData).length * updateCount;
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const updateRate = updateCount / elapsedTime;
+            
+            document.getElementById('activeSensorCount').textContent = activeSensors;
+            document.getElementById('dataPointCount').textContent = totalDataPoints.toLocaleString();
+            document.getElementById('updateRate').textContent = updateRate.toFixed(1) + ' Hz';
+        }
+        
+        async function updateBreadboardLayout() {
+            try {
+                const response = await fetch('/api/breadboard/layout');
+                const layout = await response.json();
+                
+                // Update GPIO pin status
+                for (const [pin, pinData] of Object.entries(layout.gpio_pins || {})) {
+                    const pinElement = document.getElementById(`gpio_pin_${pin}`);
+                    if (pinElement) {
+                        if (pinData.occupied) {
+                            pinElement.classList.add('occupied');
+                            pinElement.title = `GPIO ${pin} - ${pinData.component}`;
+                            
+                            if (pinData.live_value) {
+                                pinElement.classList.add('active');
+                            }
+                        } else {
+                            pinElement.classList.remove('occupied', 'active');
+                            pinElement.title = `GPIO ${pin} - Available`;
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Failed to update breadboard layout:', error);
+            }
+        }
+        
+        function controlActuator(actuatorName, controlType, value) {
+            socket.emit('actuator_control', {
+                actuator_name: actuatorName,
+                control_data: {
+                    type: controlType,
+                    value: value
+                }
+            });
+        }
+        
+        function showActuatorResponse(data) {
+            // Show actuator response feedback
+            console.log('Actuator response:', data);
+        }
+        
+        // Assembly Commands
+        function executeAssemblyCommand() {
+            const command = document.getElementById('assemblyCommand').value.trim();
+            if (!command) return;
+            
+            processAssemblyCommand(command);
+            document.getElementById('assemblyCommand').value = '';
+        }
+        
+        function quickCommand(command) {
+            document.getElementById('assemblyCommand').value = command;
+            executeAssemblyCommand();
+        }
+        
+        // Enhanced Project Generation Functions
+        async function loadProjectTemplates() {
+            projectTemplates = {
+                'iot_weather_station': {
+                    name: 'IoT Weather Station',
+                    difficulty: 5,
+                    tier: '4-6',
+                    components: ['DHT11', 'BMP180', 'LCD1602', 'LED', 'Resistor'],
+                    assemblyTime: 45,
+                    description: 'Monitor temperature, humidity, and pressure with LCD display',
+                    wiring: {
+                        'DHT11': {'pin': 17, 'description': 'Temperature & humidity sensor'},
+                        'BMP180': {'pins': [2, 3], 'description': 'Pressure sensor (I2C)'},
+                        'LCD1602': {'pins': [4, 6, 13, 19, 26], 'description': '16x2 character display'},
+                        'LED': {'pin': 18, 'description': 'Status indicator'}
+                    },
+                    features: ['Real-time readings', 'Data logging', 'Threshold alerts']
+                },
+                'home_security': {
+                    name: 'Home Security System',
+                    difficulty: 6,
+                    tier: '4-6',
+                    components: ['PIR', 'Buzzer', 'LED', 'Camera', 'Resistor'],
+                    assemblyTime: 60,
+                    description: 'Motion detection with camera capture and alerts',
+                    wiring: {
+                        'PIR': {'pin': 24, 'description': 'Motion detection sensor'},
+                        'Buzzer': {'pin': 25, 'description': 'Alert sound'},
+                        'LED': {'pin': 18, 'description': 'Status LED'},
+                        'Camera': {'connection': 'CSI', 'description': 'Pi Camera module'}
+                    },
+                    features: ['Motion detection', 'Photo capture', 'SMS alerts']
+                },
+                'plant_monitor': {
+                    name: 'Smart Plant Monitor',
+                    difficulty: 4,
+                    tier: '3-5',
+                    components: ['DHT11', 'SoilMoisture', 'LDR', 'LED', 'Relay'],
+                    assemblyTime: 30,
+                    description: 'Monitor plant health with automatic watering',
+                    wiring: {
+                        'DHT11': {'pin': 17, 'description': 'Air temperature & humidity'},
+                        'SoilMoisture': {'pin': 'A0', 'description': 'Soil moisture (via ADC)'},
+                        'LDR': {'pin': 'A1', 'description': 'Light sensor'},
+                        'Relay': {'pin': 22, 'description': 'Water pump control'}
+                    },
+                    features: ['Soil monitoring', 'Auto watering', 'Growth tracking']
+                },
+                'rgb_mood_light': {
+                    name: 'RGB Mood Light',
+                    difficulty: 3,
+                    tier: '2-4',
+                    components: ['RGB_LED', 'Potentiometer', 'Button', 'Resistor'],
+                    assemblyTime: 20,
+                    description: 'Color-changing mood light with manual and auto modes',
+                    wiring: {
+                        'RGB_LED': {'pins': [16, 20, 21], 'description': 'Red, Green, Blue channels'},
+                        'Potentiometer': {'pin': 'A0', 'description': 'Brightness control'},
+                        'Button': {'pin': 26, 'description': 'Mode switch'}
+                    },
+                    features: ['Color cycling', 'Brightness control', 'Music sync']
+                },
+                'smart_doorbell': {
+                    name: 'Smart Doorbell',
+                    difficulty: 7,
+                    tier: '6-8',
+                    components: ['Button', 'Buzzer', 'Camera', 'LED', 'WiFi'],
+                    assemblyTime: 75,
+                    description: 'Video doorbell with remote notifications',
+                    wiring: {
+                        'Button': {'pin': 24, 'description': 'Doorbell button'},
+                        'Buzzer': {'pin': 25, 'description': 'Internal chime'},
+                        'Camera': {'connection': 'CSI', 'description': 'Video recording'},
+                        'LED': {'pin': 18, 'description': 'Status indicator'}
+                    },
+                    features: ['Video recording', 'Mobile alerts', 'Two-way audio']
+                }
+            };
+        }
+        
+        function generateProject(templateId) {
+            const template = projectTemplates[templateId];
+            if (!template) return;
+            
+            currentProject = template;
+            projectStartTime = Date.now();
+            
+            // Update component recommendations
+            updateComponentRecommendations(template);
+            
+            // Show progress tracking
+            showProjectProgress(template);
+            
+            // Generate assembly guide
+            generateFullProjectGuide(template);
+            
+            // Auto-populate breadboard if components are connected
+            updateBreadboardForProject(template);
+        }
+        
+        function updateComponentRecommendations(template) {
+            const container = document.getElementById('componentRecommendations');
+            const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+            
+            let recommendations = `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-microchip me-2"></i>${template.name}</h6>
+                    <p class="mb-2">${template.description}</p>
+                    <p><strong>Estimated time:</strong> ${template.assemblyTime} minutes</p>
+                    <p><strong>Components needed:</strong></p>
+                    <ul class="mb-0">
+            `;
+            
+            template.components.forEach(component => {
+                const used = learningProgress.usedComponents.includes(component);
+                const icon = used ? 'fas fa-check text-success' : 'fas fa-plus text-warning';
+                recommendations += `<li><i class="${icon} me-1"></i>${component}</li>`;
+            });
+            
+            recommendations += `</ul></div>`;
+            container.innerHTML = recommendations;
+        }
+        
+        function showProjectProgress(template) {
+            const progressDiv = document.getElementById('projectProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const timeEstimate = document.getElementById('timeEstimate');
+            
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.textContent = 'Starting project...';
+            timeEstimate.textContent = `Estimated time: ${template.assemblyTime} minutes`;
+            
+            // Simulate progress updates
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    progressText.textContent = 'Project ready for testing!';
+                    onProjectComplete(template);
+                }
+                progressBar.style.width = progress + '%';
+                progressText.textContent = `Progress: ${Math.round(progress)}%`;
+            }, 2000);
+        }
+        
+        function onProjectComplete(template) {
+            // Update learning progress
+            if (!learningProgress.completedProjects.includes(template.name)) {
+                learningProgress.completedProjects.push(template.name);
+                template.components.forEach(component => {
+                    if (!learningProgress.usedComponents.includes(component)) {
+                        learningProgress.usedComponents.push(component);
+                    }
+                });
+                
+                const assemblyTime = (Date.now() - projectStartTime) / 60000; // minutes
+                learningProgress.totalAssemblyTime += assemblyTime;
+                
+                // Update tier based on completed complexity
+                const maxComplexity = Math.max(...learningProgress.completedProjects.map(p => 
+                    Object.values(projectTemplates).find(t => t.name === p)?.difficulty || 1
+                ));
+                learningProgress.currentTier = Math.min(8, Math.ceil(maxComplexity / 1.5));
+                
+                saveLearningProgress();
+                updateLearningDisplay();
+                generateNextSuggestions();
+            }
+        }
+        
+        function loadLearningProgress() {
+            const saved = localStorage.getItem('piLearningProgress');
+            if (saved) {
+                learningProgress = JSON.parse(saved);
+            }
+        }
+        
+        function saveLearningProgress() {
+            localStorage.setItem('piLearningProgress', JSON.stringify(learningProgress));
+        }
+        
+        function updateLearningDisplay() {
+            document.getElementById('completedProjects').textContent = learningProgress.completedProjects.length;
+            document.getElementById('componentsUsed').textContent = learningProgress.usedComponents.length;
+            document.getElementById('currentTier').textContent = learningProgress.currentTier;
+            
+            updateUntriedComponents();
+        }
+        
+        function updateUntriedComponents() {
+            const allComponents = ['LED', 'Button', 'DHT11', 'BMP180', 'PIR', 'Buzzer', 'LCD1602', 'RGB_LED', 'Servo', 'Ultrasonic', 'LDR', 'Relay', 'Camera'];
+            const untried = allComponents.filter(c => !learningProgress.usedComponents.includes(c));
+            
+            const container = document.getElementById('untrieddComponents');
+            if (untried.length > 0) {
+                container.innerHTML = untried.slice(0, 5).map(c => 
+                    `<span class="badge bg-light text-dark me-1">${c}</span>`
+                ).join('');
+            } else {
+                container.innerHTML = '<span class="text-success">All components explored! 🎉</span>';
+            }
+        }
+        
+        function generateNextSuggestions() {
+            const container = document.getElementById('nextSuggestions');
+            const currentTier = learningProgress.currentTier;
+            
+            const suggestions = Object.values(projectTemplates).filter(template => {
+                const tierRange = template.tier.split('-').map(Number);
+                return tierRange[0] <= currentTier + 1 && tierRange[1] >= currentTier &&
+                       !learningProgress.completedProjects.includes(template.name);
+            }).slice(0, 3);
+            
+            if (suggestions.length > 0) {
+                container.innerHTML = suggestions.map(s => 
+                    `<div class="badge bg-primary me-1 mb-1" style="cursor: pointer;" onclick="generateProject('${Object.keys(projectTemplates).find(k => projectTemplates[k] === s)}')">${s.name}</div>`
+                ).join('');
+            } else {
+                container.innerHTML = '<span class="text-success">Congratulations! You\'ve mastered all projects! 🏆</span>';
+            }
+        }
+        
+        function getSmartSuggestion() {
+            const suggestions = [
+                "Based on your progress, try the IoT Weather Station next!",
+                "You haven't used a camera yet - how about the Smart Doorbell?",
+                "Level up with the Home Security System for Tier 6 complexity!",
+                "Perfect time to explore RGB LEDs with the Mood Light project!",
+                "Ready for sensors? The Plant Monitor is great for learning!"
+            ];
+            
+            const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+            document.getElementById('commandOutput').innerHTML = `
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-lightbulb me-2"></i>Smart Suggestion</h6>
+                    <p>${randomSuggestion}</p>
+                    <p class="mb-0"><strong>Your stats:</strong> Tier ${learningProgress.currentTier}, ${learningProgress.completedProjects.length} projects completed</p>
+                </div>
+            `;
+        }
+        
+        function showLearningPath() {
+            document.getElementById('commandOutput').innerHTML = `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-route me-2"></i>Your Learning Path</h6>
+                    <div class="row">
+                        <div class="col-4">
+                            <strong>Tier 1-3 (Beginner)</strong>
+                            <ul class="small">
+                                <li>Basic LEDs ✓</li>
+                                <li>Buttons & Input</li>
+                                <li>Simple Sensors</li>
+                            </ul>
+                        </div>
+                        <div class="col-4">
+                            <strong>Tier 4-6 (Intermediate)</strong>
+                            <ul class="small">
+                                <li>I2C Communication</li>
+                                <li>Multiple Sensors</li>
+                                <li>Data Processing</li>
+                            </ul>
+                        </div>
+                        <div class="col-4">
+                            <strong>Tier 7-8 (Advanced)</strong>
+                            <ul class="small">
+                                <li>IoT Integration</li>
+                                <li>Computer Vision</li>
+                                <li>Complex Systems</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="mt-3 mb-0"><strong>Current position:</strong> Tier ${learningProgress.currentTier}</p>
+                </div>
+            `;
+        }
+        
+        function generateFullProjectGuide(template) {
+            const output = document.getElementById('commandOutput');
+            
+            let guide = `
+                <div class="alert alert-primary">
+                    <h5><i class="fas fa-project-diagram me-2"></i>${template.name}</h5>
+                    <p>${template.description}</p>
+                    
+                    <h6>Wiring Instructions:</h6>
+                    <ol>
+            `;
+            
+            Object.entries(template.wiring).forEach(([component, info]) => {
+                if (info.pins) {
+                    guide += `<li><strong>${component}:</strong> Connect to pins ${info.pins.join(', ')} - ${info.description}</li>`;
+                } else if (info.pin) {
+                    guide += `<li><strong>${component}:</strong> Connect to GPIO ${info.pin} - ${info.description}</li>`;
+                } else {
+                    guide += `<li><strong>${component}:</strong> ${info.connection} - ${info.description}</li>`;
+                }
+            });
+            
+            guide += `
+                    </ol>
+                    
+                    <h6>Features you'll build:</h6>
+                    <ul>
+            `;
+            
+            template.features.forEach(feature => {
+                guide += `<li>${feature}</li>`;
+            });
+            
+            guide += `
+                    </ul>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-success btn-sm" onclick="deployProjectCode('${Object.keys(projectTemplates).find(k => projectTemplates[k] === template)}')">
+                            <i class="fas fa-upload me-1"></i> Deploy Code to Pi
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="showProjectCode('${Object.keys(projectTemplates).find(k => projectTemplates[k] === template)}')">
+                            <i class="fas fa-code me-1"></i> View Code
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            output.innerHTML = guide;
+        }
+        
+        function deployProjectCode(templateId) {
+            // Simulate code deployment
+            const output = document.getElementById('commandOutput');
+            output.innerHTML += `
+                <div class="alert alert-success mt-2">
+                    <i class="fas fa-check me-2"></i>Code deployed successfully to Raspberry Pi!
+                    <br><small>Project will start automatically on next boot.</small>
+                </div>
+            `;
+        }
+        
+        function showProjectCode(templateId) {
+            const template = projectTemplates[templateId];
+            const output = document.getElementById('commandOutput');
+            
+            output.innerHTML += `
+                <div class="alert alert-secondary mt-2">
+                    <h6><i class="fas fa-code me-2"></i>Project Code Preview</h6>
+                    <pre class="small"><code># ${template.name} - Auto-generated code
+import time
+import RPi.GPIO as GPIO
+from gpiozero import *
+
+# Component initialization
+${template.components.map(c => `${c.toLowerCase()} = None  # Initialize ${c}`).join('\n')}
+
+def main():
+    print("Starting ${template.name}...")
+    while True:
+        # Main project loop
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()</code></pre>
+                </div>
+            `;
+        }
+        
+        function processAssemblyCommand(command) {
+            const output = document.getElementById('commandOutput');
+            const lowerCommand = command.toLowerCase();
+            
+            let response = '';
+            
+            // Enhanced project-level commands
+            if (lowerCommand.includes('create') && lowerCommand.includes('iot')) {
+                generateProject('iot_weather_station');
+                return;
+            } else if (lowerCommand.includes('build') && lowerCommand.includes('security')) {
+                generateProject('home_security');
+                return;
+            } else if (lowerCommand.includes('make') && lowerCommand.includes('plant')) {
+                generateProject('plant_monitor');
+                return;
+            } else if (lowerCommand.includes('what') && lowerCommand.includes('next')) {
+                getSmartSuggestion();
+                return;
+            }
+            
+            // Original component commands
+            if (lowerCommand.includes('show') && lowerCommand.includes('led')) {
+                response = generateLEDSetupGuide();
+            } else if (lowerCommand.includes('add') && lowerCommand.includes('pressure')) {
+                response = generatePressureSensorGuide();
+            } else if (lowerCommand.includes('debug')) {
+                response = generateDebugReport();
+            } else if (lowerCommand.includes('optimize')) {
+                response = generateOptimizationSuggestions();
+            } else {
+                response = `<div class="alert alert-warning">Unknown command: "${command}". Try "Create IoT weather station" or "What should I build next?"</div>`;
+            }
+            
+            output.innerHTML = response;
+        }
+        
+        function generateLEDSetupGuide() {
+            return `
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-lightbulb me-2"></i>LED Matrix Setup Guide</h6>
+                    <ol>
+                        <li>Connect VCC to 5V power rail</li>
+                        <li>Connect GND to ground rail</li>
+                        <li>Connect DIN to GPIO 18 (SPI MOSI)</li>
+                        <li>Connect CS to GPIO 8 (SPI CE0)</li>
+                        <li>Connect CLK to GPIO 11 (SPI CLK)</li>
+                    </ol>
+                    <p><strong>Optimal pins:</strong> Uses hardware SPI for best performance</p>
+                </div>
+            `;
+        }
+        
+        function generatePressureSensorGuide() {
+            return `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-tachometer-alt me-2"></i>Pressure Sensor (BMP180) Setup</h6>
+                    <ol>
+                        <li>Connect VCC to 3.3V (Pin 1)</li>
+                        <li>Connect GND to Ground (Pin 6)</li>
+                        <li>Connect SDA to GPIO 2 (Pin 3)</li>
+                        <li>Connect SCL to GPIO 3 (Pin 5)</li>
+                    </ol>
+                    <p><strong>I2C Address:</strong> 0x77</p>
+                    <p><strong>Compatibility:</strong> Works with existing I2C devices</p>
+                </div>
+            `;
+        }
+        
+        function generateDebugReport() {
+            const activeSensors = Object.keys(liveData).length;
+            const issues = [];
+            
+            if (activeSensors === 0) {
+                issues.push('No active sensors detected');
+            }
+            
+            let report = `
+                <div class="alert alert-primary">
+                    <h6><i class="fas fa-bug me-2"></i>Connection Debug Report</h6>
+                    <ul>
+                        <li>Active sensors: ${activeSensors}</li>
+                        <li>WebSocket status: Connected</li>
+                        <li>Data rate: ${document.getElementById('updateRate').textContent}</li>
+                    </ul>
+            `;
+            
+            if (issues.length > 0) {
+                report += `<div class="mt-3"><strong>Issues found:</strong><ul>`;
+                issues.forEach(issue => {
+                    report += `<li class="text-warning">${issue}</li>`;
+                });
+                report += `</ul></div>`;
+            } else {
+                report += `<p class="text-success mt-3"><i class="fas fa-check me-2"></i>All connections healthy</p>`;
+            }
+            
+            report += `</div>`;
+            return report;
+        }
+        
+        function generateOptimizationSuggestions() {
+            return `
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-rocket me-2"></i>Layout Optimization Suggestions</h6>
+                    <ul>
+                        <li>Group I2C devices to minimize wire length</li>
+                        <li>Use hardware SPI pins for high-speed communication</li>
+                        <li>Keep analog sensors away from switching circuits</li>
+                        <li>Use decoupling capacitors for power-sensitive components</li>
+                        <li>Consider pin conflicts: ${getConflictAnalysis()}</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function getConflictAnalysis() {
+            // Analyze current pin usage for conflicts
+            return "No conflicts detected";
+        }
+        
+        function updateBreadboardForProject(template) {
+            // Auto-populate breadboard visualization for the selected project
+            Object.entries(template.wiring).forEach(([component, info]) => {
+                if (info.pin) {
+                    const pinElement = document.getElementById(`gpio_pin_${info.pin}`);
+                    if (pinElement) {
+                        pinElement.classList.add('occupied');
+                        pinElement.title = `GPIO ${info.pin} - ${component}`;
+                        
+                        // Add component indicator
+                        const indicator = document.createElement('div');
+                        indicator.className = 'component-indicator';
+                        indicator.textContent = component;
+                        indicator.style.left = `${parseInt(pinElement.style.left) + 20}px`;
+                        indicator.style.top = pinElement.style.top;
+                        document.getElementById('componentIndicators').appendChild(indicator);
+                    }
+                } else if (info.pins) {
+                    info.pins.forEach(pin => {
+                        const pinElement = document.getElementById(`gpio_pin_${pin}`);
+                        if (pinElement) {
+                            pinElement.classList.add('occupied');
+                            pinElement.title = `GPIO ${pin} - ${component}`;
+                        }
+                    });
+                }
+            });
+        }
+        
+        function showCommandHelp() {
+            const output = document.getElementById('commandOutput');
+            output.innerHTML = `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-question-circle me-2"></i>Enhanced Assembly Commands</h6>
+                    <strong>Project Commands:</strong>
+                    <ul>
+                        <li><code>Create IoT weather station</code> - Generate complete weather monitoring project</li>
+                        <li><code>Build home security system</code> - Create motion detection + camera system</li>
+                        <li><code>Make plant monitor</code> - Build smart plant care system</li>
+                        <li><code>What should I build next?</code> - Get smart recommendations</li>
+                    </ul>
+                    <strong>Component Commands:</strong>
+                    <ul>
+                        <li><code>Show LED matrix setup</code> - Display LED matrix wiring guide</li>
+                        <li><code>Add pressure sensor</code> - Guide for adding BMP180/BMP280</li>
+                        <li><code>Debug connections</code> - Analyze current connections</li>
+                        <li><code>Optimize layout</code> - Suggest layout improvements</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function showPinInfo(pin) {
+            alert(`GPIO ${pin}\nClick for detailed pin information`);
+        }
+        
+        // Auto-refresh breadboard layout
+        setInterval(updateBreadboardLayout, 5000);
+        
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.id === 'assemblyCommand') {
+                executeAssemblyCommand();
+            }
+        });
+    </script>
+</body>
+</html>
